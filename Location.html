@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City and Country Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+       
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f7fafc;
+        }
+
+        .search-section {
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .search-input:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+        }
+
+        .search-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .search-btn:hover {
+            background-color: #45a049;
+        }
+
+        .result-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-card h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-card p {
+            font-size: 16px;
+            color: #555;
+            margin: 10px 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            font-size: 18px;
+        }
+
+        .modal-content h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .modal-content p {
+            font-size: 18px;
+            color: #555;
+        }
+
+        .modal-close-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            margin-top: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .modal-close-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="search-section">
+        <h2 class="text-center font-semibold text-2xl mb-6">City and Country Search</h2>
+
+        <input type="text" id="country-input" placeholder="Search by Country" class="search-input" />
+
+        <input type="text" id="city-input" placeholder="Search by City" class="search-input" />
+
+        <input type="text" id="iso2-input" placeholder="Search by ISO2" class="search-input" />
+
+        <input type="text" id="iso3-input" placeholder="Search by ISO3" class="search-input" />
+
+        <button onclick="filterData()" class="search-btn">Search</button>
+    </div>
+
+    <div id="results-container" class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+
+    <div id="city-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title"></h3>
+            <p id="modal-body"></p>
+            <button onclick="closeModal()" class="modal-close-btn">Close</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <script>
+        let csvData = [];
+
+        fetch('worldcities.csv')
+            .then(response => response.text())
+            .then(csvText => {
+                Papa.parse(csvText, {
+                    complete: function(results) {
+                        csvData = results.data.slice(1); 
+                    },
+                    header: true,
+                    skipEmptyLines: true
+                });
+            })
+            .catch(err => console.error("Error loading CSV file:", err));
+
+        function filterData() {
+            const countryInput = document.getElementById('country-input').value.toLowerCase();
+            const cityInput = document.getElementById('city-input').value.toLowerCase();
+            const iso2Input = document.getElementById('iso2-input').value.toLowerCase();
+            const iso3Input = document.getElementById('iso3-input').value.toLowerCase();
+
+            const filteredData = csvData.filter(item =>
+                item.country.toLowerCase().includes(countryInput) &&
+                item.city.toLowerCase().includes(cityInput) &&
+                item.iso2.toLowerCase().includes(iso2Input) &&
+                item.iso3.toLowerCase().includes(iso3Input)
+            );
+
+            displayResults(filteredData);
+        }
+
+        function displayResults(filteredData) {
+            const resultsContainer = document.getElementById('results-container');
+            resultsContainer.innerHTML = '';
+
+            filteredData.forEach(item => {
+                const card = document.createElement('div');
+                card.classList.add('result-card');
+                card.innerHTML = `
+                    <h3>${item.city}, ${item.country}</h3>
+                    <p><strong>ISO2:</strong> ${item.iso2}</p>
+                    <p><strong>ISO3:</strong> ${item.iso3}</p>
+                    <p><strong>Latitude:</strong> ${item.lat}</p>
+                    <p><strong>Longitude:</strong> ${item.lng}</p>
+                `;
+                card.onclick = () => showModal(item);
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        function showModal(item) {
+            const modal = document.getElementById('city-modal');
+            document.getElementById('modal-title').innerText = `${item.city}, ${item.country}`;
+            document.getElementById('modal-body').innerHTML = `
+                <p><strong>ISO2:</strong> ${item.iso2}</p>
+                <p><strong>ISO3:</strong> ${item.iso3}</p>
+                <p><strong>Latitude:</strong> ${item.lat}</p>
+                <p><strong>Longitude:</strong> ${item.lng}</p>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('city-modal');
+            modal.style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
